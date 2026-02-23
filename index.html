@@ -6,6 +6,7 @@
     <title>PasteBin Clone</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
             margin: 0;
@@ -36,6 +37,7 @@
             font-size: 20px;
             color: #fff;
             text-decoration: none;
+            cursor: pointer;
         }
         
         .nav-links {
@@ -99,6 +101,7 @@
             justify-content: space-between;
             align-items: center;
             transition: background 0.2s;
+            cursor: pointer;
         }
         
         .paste-item:hover {
@@ -111,13 +114,8 @@
         
         .paste-title {
             color: #fff;
-            text-decoration: none;
             font-weight: 500;
             font-size: 16px;
-        }
-        
-        .paste-title:hover {
-            text-decoration: underline;
         }
         
         .paste-meta {
@@ -401,9 +399,6 @@
         
         .comment-section {
             margin-top: 20px;
-            padding: 20px;
-            background: #181818;
-            border-radius: 4px;
         }
         
         .comment {
@@ -432,7 +427,7 @@
         .reaction-buttons {
             display: flex;
             gap: 15px;
-            margin-top: 10px;
+            margin: 15px 0;
         }
         
         .reaction-button {
@@ -478,45 +473,46 @@
         .info-value a {
             color: #2A9FD6;
             text-decoration: none;
+            cursor: pointer;
         }
         
         .info-value a:hover {
             text-decoration: underline;
         }
         
-        .pagination {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        
-        .page-button {
-            background: #282828;
-            border: none;
+        .loading {
+            text-align: center;
+            padding: 40px;
             color: #888;
-            padding: 8px 12px;
-            cursor: pointer;
-            border-radius: 4px;
         }
         
-        .page-button.active {
+        .loading i {
+            font-size: 30px;
+            margin-bottom: 10px;
+        }
+        
+        .paste-url {
+            background: #282828;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-size: 12px;
+            word-break: break-all;
+        }
+        
+        .copy-button {
             background: #444;
             color: #fff;
-        }
-        
-        .page-button:hover {
-            background: #333;
-        }
-        
-        .profile-link {
-            color: #2A9FD6;
-            text-decoration: none;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
             cursor: pointer;
+            font-size: 12px;
+            margin-left: 10px;
         }
         
-        .profile-link:hover {
-            text-decoration: underline;
+        .copy-button:hover {
+            background: #555;
         }
         
         @media (max-width: 768px) {
@@ -543,26 +539,32 @@
 <body>
     <!-- Navigation -->
     <div class="navbar">
-        <a href="#" onclick="showHome()" class="logo">PASTEBIN</a>
+        <a onclick="loadHome()" class="logo">PASTEBIN</a>
         <div class="nav-links" id="navLinks">
-            <a href="#" onclick="showHome()">Home</a>
-            <a href="#" onclick="showModal('upload')">Add Paste</a>
-            <a href="#" onclick="showUsers()">Users</a>
-            <a href="#" id="authLink" onclick="showModal('login')">Login</a>
+            <a onclick="loadHome()">Home</a>
+            <a onclick="showModal('upload')">Add Paste</a>
+            <a onclick="loadUsers()">Users</a>
+            <a id="authLink" onclick="showModal('login')">Login</a>
         </div>
         <input type="text" class="search-box" id="searchInput" placeholder="Search pastes..." onkeyup="searchPastes()">
     </div>
 
     <!-- Main container -->
     <div class="container">
-        <!-- Main content area (changes based on view) -->
-        <div class="main-content" id="mainContent"></div>
-
-        <!-- User sidebar (always visible) -->
-        <div class="user-sidebar" id="userSidebar"></div>
+        <div class="main-content" id="mainContent">
+            <div class="loading">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Loading...</p>
+            </div>
+        </div>
+        <div class="user-sidebar" id="userSidebar">
+            <div class="loading">
+                <i class="fas fa-spinner fa-spin"></i>
+            </div>
+        </div>
     </div>
 
-    <!-- Modals -->
+    <!-- Login Modal -->
     <div id="loginModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -570,8 +572,8 @@
                 <span class="close" onclick="hideModal('login')">&times;</span>
             </div>
             <div class="form-group">
-                <label>Username</label>
-                <input type="text" id="loginUsername" placeholder="Enter username">
+                <label>Username or Email</label>
+                <input type="text" id="loginUsername" placeholder="Enter username or email">
             </div>
             <div class="form-group">
                 <label>Password</label>
@@ -580,11 +582,12 @@
             <div id="loginError" class="error"></div>
             <button class="button" onclick="handleLogin()">Login</button>
             <p style="text-align: center; margin-top: 15px; font-size: 13px; color: #888;">
-                Don't have an account? <a href="#" onclick="switchModal('login', 'register')">Register</a>
+                Don't have an account? <a onclick="switchModal('login', 'register')">Register</a>
             </p>
         </div>
     </div>
 
+    <!-- Register Modal -->
     <div id="registerModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -610,11 +613,12 @@
             <div id="registerError" class="error"></div>
             <button class="button" onclick="handleRegister()">Register</button>
             <p style="text-align: center; margin-top: 15px; font-size: 13px; color: #888;">
-                Already have an account? <a href="#" onclick="switchModal('register', 'login')">Login</a>
+                Already have an account? <a onclick="switchModal('register', 'login')">Login</a>
             </p>
         </div>
     </div>
 
+    <!-- Upload Modal -->
     <div id="uploadModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -678,6 +682,7 @@
         </div>
     </div>
 
+    <!-- Edit Profile Modal -->
     <div id="editProfileModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -705,6 +710,7 @@
         </div>
     </div>
 
+    <!-- Avatar Modal -->
     <div id="avatarModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -720,6 +726,7 @@
         </div>
     </div>
 
+    <!-- View Paste Modal -->
     <div id="viewPasteModal" class="modal">
         <div class="modal-content" style="width: 800px;">
             <div class="modal-header">
@@ -727,10 +734,11 @@
                 <span class="close" onclick="hideModal('view-paste')">&times;</span>
             </div>
             <div id="pasteInfo" style="margin-bottom: 20px;"></div>
+            <div id="pasteUrl" class="paste-url"></div>
             <pre id="pasteContent" style="background: #282828; padding: 15px; border-radius: 4px; overflow-x: auto; white-space: pre-wrap;"></pre>
             <div id="pasteReactions" class="reaction-buttons"></div>
             <div class="separator"></div>
-            <div id="pasteComments"></div>
+            <div id="pasteComments" class="comment-section"></div>
             <div class="form-group" id="commentForm" style="display: none;">
                 <textarea id="commentInput" placeholder="Add a comment..." rows="3"></textarea>
                 <button class="button" onclick="addComment()">Post Comment</button>
@@ -738,224 +746,188 @@
         </div>
     </div>
 
-    <div id="userProfileModal" class="modal">
+    <!-- View User Modal -->
+    <div id="viewUserModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="profileUsername"></h3>
-                <span class="close" onclick="hideModal('user-profile')">&times;</span>
+                <h3 id="viewUserTitle"></h3>
+                <span class="close" onclick="hideModal('view-user')">&times;</span>
             </div>
-            <div id="userProfileContent"></div>
+            <div id="viewUserContent"></div>
         </div>
     </div>
 
+    <!-- Toast Notification -->
     <div id="toast" class="toast"></div>
 
     <script>
-        // Initialize data
-        let users = JSON.parse(localStorage.getItem('users')) || [];
-        let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
-        let pastes = JSON.parse(localStorage.getItem('pastes')) || [];
-        let comments = JSON.parse(localStorage.getItem('comments')) || [];
-        let reactions = JSON.parse(localStorage.getItem('reactions')) || {};
+        // Supabase configuration
+        const SUPABASE_URL = 'https://ylgtgecqhdhakzbjdkqq.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_ILF6pER_bdL8GppxOzfumg_xsDoMA6T';
+        
+        // Initialize Supabase client
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // Initialize with demo data if empty
-        if (users.length === 0) {
-            users.push({
-                id: 1,
-                username: 'wspp',
-                password: 'password123',
-                email: 'wspp@example.com',
-                displayName: 'wspp',
-                bio: 'Just a regular user',
-                website: '',
-                location: 'Unknown',
-                avatar: null,
-                created: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                followers: [],
-                following: []
-            });
-            localStorage.setItem('users', JSON.stringify(users));
+        // Global state
+        let currentUser = null;
+        let currentView = 'home';
+        let currentPage = 1;
+        const ITEMS_PER_PAGE = 20;
+
+        // Initialize app
+        async function init() {
+            await checkSession();
+            setupAuthListener();
+            await loadHome();
+            await loadSidebar();
         }
 
-        if (pastes.length === 0) {
-            pastes.push({
-                id: 1,
-                title: 'hipposniffer XD',
-                content: 'This is a sample paste content...',
-                author: 'wspp',
-                authorId: 1,
-                views: 4,
-                date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                pinned: true,
-                syntax: 'text',
-                visibility: 'public',
-                expiration: 'never',
-                createdAt: Date.now()
-            });
-            localStorage.setItem('pastes', JSON.stringify(pastes));
-        }
-
-        // Navigation functions
-        function showHome() {
-            document.getElementById('mainContent').innerHTML = renderPasteList();
-            updateURL('/');
-        }
-
-        function showUsers() {
-            document.getElementById('mainContent').innerHTML = renderUserList();
-            updateURL('/users');
-        }
-
-        function showUserProfile(username) {
-            const user = users.find(u => u.username === username);
-            if (user) {
-                document.getElementById('profileUsername').textContent = user.displayName || user.username;
-                document.getElementById('userProfileContent').innerHTML = renderUserProfile(user);
-                showModal('user-profile');
+        // Check for existing session
+        async function checkSession() {
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession();
+                if (session?.user) {
+                    await loadUserProfile(session.user.id);
+                }
+            } catch (error) {
+                console.error('Session check failed:', error);
             }
         }
 
-        // Render functions
-        function renderPasteList(filteredPastes = null) {
-            const pastesToShow = filteredPastes || pastes.filter(p => p.visibility === 'public').sort((a, b) => b.createdAt - a.createdAt);
-            const pinnedPastes = pastesToShow.filter(p => p.pinned);
-            const regularPastes = pastesToShow.filter(p => !p.pinned);
-
-            let html = `
-                <div class="paste-list">
-                    <div class="paste-header">
-                        <span>Showing ${pastesToShow.length} of ${pastes.length} total pastes</span>
-                        <span>Pinned Pastes • Latest</span>
-                    </div>
-            `;
-
-            // Show pinned pastes first
-            pinnedPastes.forEach(paste => {
-                html += renderPasteItem(paste, true);
+        // Set up auth state listener
+        function setupAuthListener() {
+            supabase.auth.onAuthStateChange(async (event, session) => {
+                if (event === 'SIGNED_IN' && session?.user) {
+                    await loadUserProfile(session.user.id);
+                } else if (event === 'SIGNED_OUT') {
+                    currentUser = null;
+                    updateUI();
+                }
             });
-
-            // Show regular pastes
-            regularPastes.forEach(paste => {
-                html += renderPasteItem(paste);
-            });
-
-            html += '</div>';
-            return html;
         }
 
-        function renderPasteItem(paste, pinned = false) {
-            return `
-                <div class="paste-item">
-                    <div>
-                        <a href="#" class="paste-title" onclick="viewPaste(${paste.id})">
-                            ${paste.title}
-                            ${pinned ? '<span class="pinned-badge">PINNED</span>' : ''}
-                        </a>
-                    </div>
-                    <div class="paste-meta">
-                        <span><i class="fas fa-eye"></i> ${paste.views}</span>
-                        <span>${paste.date}</span>
-                        <span><a href="#" class="profile-link" onclick="showUserProfile('${paste.author}')">${paste.author}</a></span>
-                    </div>
-                </div>
-            `;
+        // Load user profile from database
+        async function loadUserProfile(userId) {
+            try {
+                const { data: profile, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', userId)
+                    .single();
+
+                if (error) throw error;
+
+                currentUser = profile;
+                updateUI();
+            } catch (error) {
+                console.error('Failed to load profile:', error);
+            }
         }
 
-        function renderUserList() {
-            let html = `
-                <div class="paste-list">
-                    <div class="paste-header">
-                        <span>Users (${users.length})</span>
-                    </div>
-            `;
+        // Load home page
+        async function loadHome() {
+            currentView = 'home';
+            document.getElementById('mainContent').innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i><p>Loading pastes...</p></div>';
+            
+            try {
+                const { data: pastes, error } = await supabase
+                    .from('pastes')
+                    .select(`
+                        *,
+                        profiles:user_id (
+                            username,
+                            display_name,
+                            avatar_url
+                        )
+                    `)
+                    .eq('visibility', 'public')
+                    .order('created_at', { ascending: false })
+                    .range((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE - 1);
 
-            users.forEach(user => {
-                const userPastes = pastes.filter(p => p.authorId === user.id).length;
-                html += `
-                    <div class="paste-item">
-                        <div>
-                            <a href="#" class="paste-title" onclick="showUserProfile('${user.username}')">
-                                ${user.displayName || user.username}
-                            </a>
-                        </div>
-                        <div class="paste-meta">
-                            <span><i class="fas fa-paste"></i> ${userPastes} pastes</span>
-                            <span>Joined ${user.created}</span>
-                        </div>
+                if (error) throw error;
+
+                renderPasteList(pastes || []);
+            } catch (error) {
+                console.error('Failed to load pastes:', error);
+                document.getElementById('mainContent').innerHTML = '<div class="error">Failed to load pastes</div>';
+            }
+        }
+
+        // Load users page
+        async function loadUsers() {
+            currentView = 'users';
+            document.getElementById('mainContent').innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i><p>Loading users...</p></div>';
+            
+            try {
+                const { data: profiles, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                renderUserList(profiles || []);
+            } catch (error) {
+                console.error('Failed to load users:', error);
+                document.getElementById('mainContent').innerHTML = '<div class="error">Failed to load users</div>';
+            }
+        }
+
+        // Load sidebar
+        async function loadSidebar() {
+            const sidebar = document.getElementById('userSidebar');
+            
+            if (!currentUser) {
+                sidebar.innerHTML = `
+                    <div class="avatar"><i class="fas fa-user"></i></div>
+                    <div class="username">Guest</div>
+                    <button class="button" onclick="showModal('login')">Login</button>
+                    <button class="button" onclick="showModal('register')">Register</button>
+                    <div class="separator"></div>
+                    <div style="font-size: 13px; color: #888;">
+                        Login to create pastes and interact
                     </div>
                 `;
-            });
+                return;
+            }
 
-            html += '</div>';
-            return html;
-        }
+            try {
+                // Get user stats
+                const { count: pasteCount, error: pasteError } = await supabase
+                    .from('pastes')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', currentUser.id);
 
-        function renderUserProfile(user) {
-            const userPastes = pastes.filter(p => p.authorId === user.id);
-            const isCurrentUser = currentUser && currentUser.id === user.id;
-            
-            return `
-                <div style="text-align: center;">
-                    <div class="avatar" style="margin-bottom: 15px;">
-                        ${user.avatar ? `<img src="${user.avatar}">` : '<i class="fas fa-user"></i>'}
-                    </div>
-                    <div class="username">${user.displayName || user.username}</div>
-                    <div class="user-bio">${user.bio || 'No bio yet'}</div>
-                    <div class="user-stats">
-                        <div class="stat">
-                            <div class="stat-value">${userPastes.length}</div>
-                            <div>Pastes</div>
-                        </div>
-                        <div class="stat">
-                            <div class="stat-value">${user.followers?.length || 0}</div>
-                            <div>Followers</div>
-                        </div>
-                        <div class="stat">
-                            <div class="stat-value">${user.following?.length || 0}</div>
-                            <div>Following</div>
-                        </div>
-                    </div>
-                    ${!isCurrentUser && currentUser ? `
-                        <button class="button" onclick="toggleFollow(${user.id})">
-                            ${currentUser.following?.includes(user.id) ? 'Unfollow' : 'Follow'}
-                        </button>
-                    ` : ''}
-                    <div class="separator"></div>
-                    <h4>Recent Pastes</h4>
-                    ${userPastes.slice(0, 5).map(paste => `
-                        <div class="paste-item">
-                            <div>
-                                <a href="#" class="paste-title" onclick="viewPaste(${paste.id})">${paste.title}</a>
-                            </div>
-                            <div class="paste-meta">${paste.date}</div>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        }
+                const { count: followerCount, error: followerError } = await supabase
+                    .from('followers')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('following_id', currentUser.id);
 
-        function renderSidebar() {
-            let html = '';
-            
-            if (currentUser) {
-                const userPastes = pastes.filter(p => p.authorId === currentUser.id).length;
-                html = `
+                const { count: followingCount, error: followingError } = await supabase
+                    .from('followers')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('follower_id', currentUser.id);
+
+                sidebar.innerHTML = `
                     <div class="avatar" onclick="showModal('avatar')">
-                        ${currentUser.avatar ? `<img src="${currentUser.avatar}">` : '<i class="fas fa-user"></i>'}
+                        ${currentUser.avatar_url ? 
+                            `<img src="${currentUser.avatar_url}">` : 
+                            '<i class="fas fa-user"></i>'
+                        }
                     </div>
-                    <div class="username">${currentUser.displayName || currentUser.username}</div>
+                    <div class="username">${currentUser.display_name || currentUser.username}</div>
                     <div class="user-bio">${currentUser.bio || 'No bio yet'}</div>
                     <div class="user-stats">
                         <div class="stat">
-                            <div class="stat-value">${userPastes}</div>
+                            <div class="stat-value">${pasteCount || 0}</div>
                             <div>Pastes</div>
                         </div>
                         <div class="stat">
-                            <div class="stat-value">${currentUser.followers?.length || 0}</div>
+                            <div class="stat-value">${followerCount || 0}</div>
                             <div>Followers</div>
                         </div>
                         <div class="stat">
-                            <div class="stat-value">${currentUser.following?.length || 0}</div>
+                            <div class="stat-value">${followingCount || 0}</div>
                             <div>Following</div>
                         </div>
                     </div>
@@ -965,52 +937,710 @@
                     <button class="button" onclick="showModal('upload')">
                         <i class="fas fa-plus"></i> New Paste
                     </button>
-                    <button class="button button-danger" onclick="logout()">
+                    <button class="button button-danger" onclick="handleLogout()">
                         <i class="fas fa-sign-out-alt"></i> Logout
                     </button>
                     <div class="separator"></div>
                     <div style="text-align: left;">
                         <div class="info-row">
-                            <span class="info-label">UID:</span>
-                            <span class="info-value">${currentUser.id}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Created:</span>
-                            <span class="info-value">${currentUser.created}</span>
+                            <span class="info-label">Member since:</span>
+                            <span class="info-value">${new Date(currentUser.created_at).toLocaleDateString()}</span>
                         </div>
                     </div>
                 `;
-            } else {
-                html = `
-                    <div class="avatar"><i class="fas fa-user"></i></div>
-                    <div class="username">Guest</div>
-                    <button class="button" onclick="showModal('login')">Login</button>
-                    <button class="button" onclick="showModal('register')">Register</button>
-                    <div class="separator"></div>
-                    <div style="font-size: 13px; color: #888;">
-                        Login to create pastes and comment
-                    </div>
-                `;
+            } catch (error) {
+                console.error('Failed to load sidebar:', error);
             }
-            
-            document.getElementById('userSidebar').innerHTML = html;
         }
 
-        // Modal functions
-        function showModal(modalName) {
-            if (modalName === 'upload' && !currentUser) {
+        // Render paste list
+        function renderPasteList(pastes) {
+            let html = `
+                <div class="paste-list">
+                    <div class="paste-header">
+                        <span>Recent Pastes</span>
+                    </div>
+            `;
+
+            if (pastes.length === 0) {
+                html += '<div style="text-align: center; padding: 40px; color: #888;">No pastes yet</div>';
+            } else {
+                pastes.forEach(paste => {
+                    html += `
+                        <div class="paste-item" onclick="viewPaste('${paste.id}')">
+                            <div>
+                                <span class="paste-title">${paste.title}</span>
+                                ${paste.is_pinned ? '<span class="pinned-badge">PINNED</span>' : ''}
+                            </div>
+                            <div class="paste-meta">
+                                <span><i class="fas fa-eye"></i> ${paste.views || 0}</span>
+                                <span>${new Date(paste.created_at).toLocaleDateString()}</span>
+                                <span><a onclick="viewUser('${paste.profiles?.username}'); event.stopPropagation();">${paste.profiles?.display_name || paste.profiles?.username || 'Unknown'}</a></span>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            html += `
+                <div class="pagination">
+                    <button class="page-button" onclick="changePage(-1)" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>
+                    <span style="color: #888;">Page ${currentPage}</span>
+                    <button class="page-button" onclick="changePage(1)">Next</button>
+                </div>
+            </div>
+            `;
+
+            document.getElementById('mainContent').innerHTML = html;
+        }
+
+        // Render user list
+        function renderUserList(users) {
+            let html = `
+                <div class="paste-list">
+                    <div class="paste-header">
+                        <span>Users (${users.length})</span>
+                    </div>
+            `;
+
+            users.forEach(user => {
+                html += `
+                    <div class="paste-item" onclick="viewUser('${user.username}')">
+                        <div>
+                            <span class="paste-title">${user.display_name || user.username}</span>
+                        </div>
+                        <div class="paste-meta">
+                            <span>Joined ${new Date(user.created_at).toLocaleDateString()}</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            document.getElementById('mainContent').innerHTML = html;
+        }
+
+        // View single paste
+        async function viewPaste(pasteId) {
+            try {
+                // Increment view count
+                await supabase.rpc('increment_paste_views', { paste_id: pasteId });
+
+                // Get paste details
+                const { data: paste, error: pasteError } = await supabase
+                    .from('pastes')
+                    .select(`
+                        *,
+                        profiles:user_id (
+                            username,
+                            display_name,
+                            avatar_url
+                        )
+                    `)
+                    .eq('id', pasteId)
+                    .single();
+
+                if (pasteError) throw pasteError;
+
+                // Get comments
+                const { data: comments, error: commentsError } = await supabase
+                    .from('comments')
+                    .select(`
+                        *,
+                        profiles:user_id (
+                            username,
+                            display_name
+                        )
+                    `)
+                    .eq('paste_id', pasteId)
+                    .order('created_at', { ascending: false });
+
+                // Get user reaction
+                let userReaction = null;
+                if (currentUser) {
+                    const { data: reaction } = await supabase
+                        .from('reactions')
+                        .select('reaction_type')
+                        .eq('paste_id', pasteId)
+                        .eq('user_id', currentUser.id)
+                        .single();
+                    
+                    userReaction = reaction?.reaction_type;
+                }
+
+                // Get reaction counts
+                const { data: likes } = await supabase
+                    .from('reactions')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('paste_id', pasteId)
+                    .eq('reaction_type', 'like');
+
+                const { data: dislikes } = await supabase
+                    .from('reactions')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('paste_id', pasteId)
+                    .eq('reaction_type', 'dislike');
+
+                // Display paste
+                document.getElementById('viewPasteTitle').textContent = paste.title;
+                document.getElementById('pasteContent').textContent = paste.content;
+                
+                // Generate URL
+                const pasteUrl = `${window.location.origin}/paste/${paste.id}`;
+                document.getElementById('pasteUrl').innerHTML = `
+                    <strong>URL:</strong> ${pasteUrl}
+                    <button class="copy-button" onclick="copyToClipboard('${pasteUrl}')">Copy</button>
+                `;
+
+                document.getElementById('pasteInfo').innerHTML = `
+                    <div class="info-row">
+                        <span class="info-label">Author:</span>
+                        <span class="info-value"><a onclick="viewUser('${paste.profiles.username}')">${paste.profiles.display_name || paste.profiles.username}</a></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Created:</span>
+                        <span class="info-value">${new Date(paste.created_at).toLocaleString()}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Views:</span>
+                        <span class="info-value">${paste.views || 0}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Syntax:</span>
+                        <span class="info-value">${paste.syntax}</span>
+                    </div>
+                `;
+
+                document.getElementById('pasteReactions').innerHTML = `
+                    <button class="reaction-button ${userReaction === 'like' ? 'active' : ''}" onclick="addReaction('${paste.id}', 'like')">
+                        <i class="fas fa-thumbs-up"></i> ${likes?.length || 0}
+                    </button>
+                    <button class="reaction-button ${userReaction === 'dislike' ? 'active' : ''}" onclick="addReaction('${paste.id}', 'dislike')">
+                        <i class="fas fa-thumbs-down"></i> ${dislikes?.length || 0}
+                    </button>
+                `;
+
+                // Render comments
+                const commentsHtml = (comments || []).map(comment => `
+                    <div class="comment">
+                        <div class="comment-meta">
+                            <span><a onclick="viewUser('${comment.profiles?.username}')">${comment.profiles?.display_name || comment.profiles?.username}</a> • ${new Date(comment.created_at).toLocaleString()}</span>
+                        </div>
+                        <div class="comment-content">${comment.content}</div>
+                    </div>
+                `).join('');
+
+                document.getElementById('pasteComments').innerHTML = commentsHtml || '<div style="color: #888; text-align: center;">No comments yet</div>';
+                
+                document.getElementById('commentForm').style.display = currentUser ? 'block' : 'none';
+                document.getElementById('commentInput').value = '';
+
+                showModal('view-paste');
+            } catch (error) {
+                console.error('Failed to load paste:', error);
+                showToast('Failed to load paste');
+            }
+        }
+
+        // View user profile
+        async function viewUser(username) {
+            try {
+                const { data: profile, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('username', username)
+                    .single();
+
+                if (profileError) throw profileError;
+
+                // Get user's pastes
+                const { data: userPastes, error: pastesError } = await supabase
+                    .from('pastes')
+                    .select('*')
+                    .eq('user_id', profile.id)
+                    .eq('visibility', 'public')
+                    .order('created_at', { ascending: false })
+                    .limit(5);
+
+                // Get follower counts
+                const { count: followers } = await supabase
+                    .from('followers')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('following_id', profile.id);
+
+                const { count: following } = await supabase
+                    .from('followers')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('follower_id', profile.id);
+
+                // Check if current user follows this user
+                let isFollowing = false;
+                if (currentUser) {
+                    const { data: follow } = await supabase
+                        .from('followers')
+                        .select('*')
+                        .eq('follower_id', currentUser.id)
+                        .eq('following_id', profile.id)
+                        .single();
+                    
+                    isFollowing = !!follow;
+                }
+
+                document.getElementById('viewUserTitle').textContent = profile.display_name || profile.username;
+
+                let html = `
+                    <div style="text-align: center;">
+                        <div class="avatar" style="margin-bottom: 15px;">
+                            ${profile.avatar_url ? 
+                                `<img src="${profile.avatar_url}">` : 
+                                '<i class="fas fa-user"></i>'
+                            }
+                        </div>
+                        <div class="username">${profile.display_name || profile.username}</div>
+                        <div class="user-bio">${profile.bio || 'No bio yet'}</div>
+                        ${profile.website ? `<div><a href="${profile.website}" target="_blank" style="color: #2A9FD6;">${profile.website}</a></div>` : ''}
+                        ${profile.location ? `<div style="color: #888; margin-top: 5px;">📍 ${profile.location}</div>` : ''}
+                        
+                        <div class="user-stats">
+                            <div class="stat">
+                                <div class="stat-value">${userPastes?.length || 0}</div>
+                                <div>Pastes</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value">${followers || 0}</div>
+                                <div>Followers</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value">${following || 0}</div>
+                                <div>Following</div>
+                            </div>
+                        </div>
+                `;
+
+                if (currentUser && currentUser.id !== profile.id) {
+                    html += `
+                        <button class="button" onclick="toggleFollow('${profile.id}')">
+                            ${isFollowing ? 'Unfollow' : 'Follow'}
+                        </button>
+                    `;
+                }
+
+                if (userPastes?.length > 0) {
+                    html += `
+                        <div class="separator"></div>
+                        <h4>Recent Pastes</h4>
+                    `;
+
+                    userPastes.forEach(paste => {
+                        html += `
+                            <div class="paste-item" onclick="viewPaste('${paste.id}')">
+                                <div>
+                                    <span class="paste-title">${paste.title}</span>
+                                </div>
+                                <div class="paste-meta">
+                                    <span><i class="fas fa-eye"></i> ${paste.views || 0}</span>
+                                    <span>${new Date(paste.created_at).toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+
+                html += '</div>';
+                document.getElementById('viewUserContent').innerHTML = html;
+                showModal('view-user');
+            } catch (error) {
+                console.error('Failed to load user:', error);
+                showToast('Failed to load user profile');
+            }
+        }
+
+        // Handle login
+        async function handleLogin() {
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorDiv = document.getElementById('loginError');
+
+            if (!username || !password) {
+                errorDiv.textContent = 'Please fill in all fields';
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: username.includes('@') ? username : `${username}@placeholder.com`,
+                    password: password
+                });
+
+                if (error) throw error;
+
+                hideModal('login');
+                showToast('Logged in successfully!');
+                await loadSidebar();
+                await loadHome();
+            } catch (error) {
+                errorDiv.textContent = error.message;
+            }
+        }
+
+        // Handle register
+        async function handleRegister() {
+            const username = document.getElementById('regUsername').value;
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            const confirm = document.getElementById('regConfirm').value;
+            const errorDiv = document.getElementById('registerError');
+
+            if (!username || !email || !password || !confirm) {
+                errorDiv.textContent = 'Please fill in all fields';
+                return;
+            }
+
+            if (password !== confirm) {
+                errorDiv.textContent = 'Passwords do not match';
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: {
+                            username: username,
+                            display_name: username
+                        }
+                    }
+                });
+
+                if (error) throw error;
+
+                showToast('Registered successfully! Please check your email for confirmation.');
+                hideModal('register');
+            } catch (error) {
+                errorDiv.textContent = error.message;
+            }
+        }
+
+        // Handle logout
+        async function handleLogout() {
+            try {
+                const { error } = await supabase.auth.signOut();
+                if (error) throw error;
+                
+                currentUser = null;
+                showToast('Logged out');
+                await loadSidebar();
+                await loadHome();
+            } catch (error) {
+                console.error('Logout failed:', error);
+            }
+        }
+
+        // Handle upload
+        async function handleUpload() {
+            if (!currentUser) {
                 showToast('Please login to create pastes');
                 showModal('login');
                 return;
             }
-            
-            if (modalName === 'edit-profile' && currentUser) {
-                document.getElementById('displayName').value = currentUser.displayName || '';
-                document.getElementById('bio').value = currentUser.bio || '';
-                document.getElementById('website').value = currentUser.website || '';
-                document.getElementById('location').value = currentUser.location || '';
+
+            const title = document.getElementById('pasteTitle').value;
+            const content = document.getElementById('pasteContent').value;
+            const syntax = document.getElementById('pasteSyntax').value;
+            const visibility = document.getElementById('pasteVisibility').value;
+            const expiration = document.getElementById('pasteExpiration').value;
+            const errorDiv = document.getElementById('uploadError');
+
+            if (!title || !content) {
+                errorDiv.textContent = 'Please fill in all fields';
+                return;
             }
+
+            try {
+                const { data, error } = await supabase
+                    .from('pastes')
+                    .insert({
+                        title: title,
+                        content: content,
+                        syntax: syntax,
+                        visibility: visibility,
+                        expiration: expiration,
+                        user_id: currentUser.id
+                    })
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                showToast('Paste created successfully!');
+                hideModal('upload');
+                document.getElementById('pasteTitle').value = '';
+                document.getElementById('pasteContent').value = '';
+                await loadHome();
+            } catch (error) {
+                errorDiv.textContent = error.message;
+            }
+        }
+
+        // Handle file select
+        function handleFileSelect() {
+            const file = document.getElementById('fileInput').files[0];
+            if (file) {
+                document.getElementById('fileName').innerHTML = `Selected: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('pasteContent').value = e.target.result;
+                    document.getElementById('pasteTitle').value = file.name.replace(/\.[^/.]+$/, '');
+                    switchTab('upload', 'text');
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        // Save profile
+        async function saveProfile() {
+            if (!currentUser) return;
+
+            const displayName = document.getElementById('displayName').value;
+            const bio = document.getElementById('bio').value;
+            const website = document.getElementById('website').value;
+            const location = document.getElementById('location').value;
+
+            try {
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({
+                        display_name: displayName,
+                        bio: bio,
+                        website: website,
+                        location: location,
+                        updated_at: new Date()
+                    })
+                    .eq('id', currentUser.id);
+
+                if (error) throw error;
+
+                currentUser = { ...currentUser, display_name: displayName, bio, website, location };
+                showToast('Profile updated!');
+                hideModal('edit-profile');
+                await loadSidebar();
+            } catch (error) {
+                document.getElementById('profileError').textContent = error.message;
+            }
+        }
+
+        // Handle avatar upload
+        async function handleAvatarSelect() {
+            const file = document.getElementById('avatarInput').files[0];
+            if (!file || !currentUser) return;
+
+            try {
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${currentUser.id}-${Date.now()}.${fileExt}`;
+                const filePath = `avatars/${fileName}`;
+
+                // Upload to Supabase Storage
+                const { error: uploadError } = await supabase.storage
+                    .from('avatars')
+                    .upload(filePath, file);
+
+                if (uploadError) throw uploadError;
+
+                // Get public URL
+                const { data: { publicUrl } } = supabase.storage
+                    .from('avatars')
+                    .getPublicUrl(filePath);
+
+                // Update profile
+                const { error: updateError } = await supabase
+                    .from('profiles')
+                    .update({ avatar_url: publicUrl })
+                    .eq('id', currentUser.id);
+
+                if (updateError) throw updateError;
+
+                currentUser.avatar_url = publicUrl;
+                showToast('Avatar updated!');
+                hideModal('avatar');
+                await loadSidebar();
+            } catch (error) {
+                console.error('Avatar upload failed:', error);
+                showToast('Failed to upload avatar');
+            }
+        }
+
+        // Add reaction
+        async function addReaction(pasteId, type) {
+            if (!currentUser) {
+                showToast('Please login to react');
+                showModal('login');
+                return;
+            }
+
+            try {
+                // Check if user already reacted
+                const { data: existing } = await supabase
+                    .from('reactions')
+                    .select('*')
+                    .eq('paste_id', pasteId)
+                    .eq('user_id', currentUser.id)
+                    .single();
+
+                if (existing) {
+                    if (existing.reaction_type === type) {
+                        // Remove reaction
+                        await supabase
+                            .from('reactions')
+                            .delete()
+                            .eq('id', existing.id);
+                    } else {
+                        // Update reaction
+                        await supabase
+                            .from('reactions')
+                            .update({ reaction_type: type })
+                            .eq('id', existing.id);
+                    }
+                } else {
+                    // Add new reaction
+                    await supabase
+                        .from('reactions')
+                        .insert({
+                            paste_id: pasteId,
+                            user_id: currentUser.id,
+                            reaction_type: type
+                        });
+                }
+
+                // Refresh paste view
+                viewPaste(pasteId);
+            } catch (error) {
+                console.error('Failed to add reaction:', error);
+            }
+        }
+
+        // Add comment
+        async function addComment() {
+            if (!currentUser) {
+                showToast('Please login to comment');
+                showModal('login');
+                return;
+            }
+
+            const pasteId = document.getElementById('viewPasteTitle').textContent.split(' ')[0];
+            const content = document.getElementById('commentInput').value;
+
+            if (!content) return;
+
+            try {
+                const { error } = await supabase
+                    .from('comments')
+                    .insert({
+                        paste_id: pasteId,
+                        user_id: currentUser.id,
+                        content: content
+                    });
+
+                if (error) throw error;
+
+                showToast('Comment added!');
+                viewPaste(pasteId);
+            } catch (error) {
+                console.error('Failed to add comment:', error);
+            }
+        }
+
+        // Toggle follow
+        async function toggleFollow(userId) {
+            if (!currentUser) {
+                showToast('Please login to follow users');
+                showModal('login');
+                return;
+            }
+
+            try {
+                const { data: existing } = await supabase
+                    .from('followers')
+                    .select('*')
+                    .eq('follower_id', currentUser.id)
+                    .eq('following_id', userId)
+                    .single();
+
+                if (existing) {
+                    await supabase
+                        .from('followers')
+                        .delete()
+                        .eq('id', existing.id);
+                    showToast('Unfollowed');
+                } else {
+                    await supabase
+                        .from('followers')
+                        .insert({
+                            follower_id: currentUser.id,
+                            following_id: userId
+                        });
+                    showToast('Following');
+                }
+
+                hideModal('view-user');
+            } catch (error) {
+                console.error('Failed to toggle follow:', error);
+            }
+        }
+
+        // Search pastes
+        async function searchPastes() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
             
+            if (!query) {
+                await loadHome();
+                return;
+            }
+
+            try {
+                const { data: pastes, error } = await supabase
+                    .from('pastes')
+                    .select(`
+                        *,
+                        profiles:user_id (
+                            username,
+                            display_name
+                        )
+                    `)
+                    .eq('visibility', 'public')
+                    .or(`title.ilike.%${query}%,content.ilike.%${query}%`)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                renderPasteList(pastes || []);
+            } catch (error) {
+                console.error('Search failed:', error);
+            }
+        }
+
+        // Change page
+        function changePage(direction) {
+            currentPage += direction;
+            if (currentPage < 1) currentPage = 1;
+            loadHome();
+        }
+
+        // Copy to clipboard
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('URL copied to clipboard!');
+            });
+        }
+
+        // Modal functions
+        function showModal(modalName) {
+            if ((modalName === 'upload' || modalName === 'edit-profile') && !currentUser) {
+                showToast('Please login first');
+                showModal('login');
+                return;
+            }
             document.getElementById(modalName + 'Modal').classList.add('active');
         }
         
@@ -1031,370 +1661,6 @@
             document.getElementById(tab + 'Tab').classList.add('active');
         }
 
-        // Auth functions
-        function handleLogin() {
-            const username = document.getElementById('loginUsername').value;
-            const password = document.getElementById('loginPassword').value;
-            const errorDiv = document.getElementById('loginError');
-            
-            if (!username || !password) {
-                errorDiv.textContent = 'Please fill in all fields';
-                return;
-            }
-            
-            const user = users.find(u => (u.username === username || u.email === username) && u.password === password);
-            
-            if (user) {
-                currentUser = JSON.parse(JSON.stringify(user));
-                delete currentUser.password;
-                localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                showToast('Logged in successfully!');
-                hideModal('login');
-                updateUI();
-            } else {
-                errorDiv.textContent = 'Invalid username or password';
-            }
-        }
-        
-        function handleRegister() {
-            const username = document.getElementById('regUsername').value;
-            const email = document.getElementById('regEmail').value;
-            const password = document.getElementById('regPassword').value;
-            const confirm = document.getElementById('regConfirm').value;
-            const errorDiv = document.getElementById('registerError');
-            
-            if (!username || !email || !password || !confirm) {
-                errorDiv.textContent = 'Please fill in all fields';
-                return;
-            }
-            
-            if (password !== confirm) {
-                errorDiv.textContent = 'Passwords do not match';
-                return;
-            }
-            
-            if (users.find(u => u.username === username)) {
-                errorDiv.textContent = 'Username already exists';
-                return;
-            }
-            
-            if (users.find(u => u.email === email)) {
-                errorDiv.textContent = 'Email already registered';
-                return;
-            }
-            
-            const newUser = {
-                id: users.length + 1,
-                username: username,
-                password: password,
-                email: email,
-                displayName: username,
-                bio: '',
-                website: '',
-                location: '',
-                avatar: null,
-                created: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                followers: [],
-                following: []
-            };
-            
-            users.push(newUser);
-            localStorage.setItem('users', JSON.stringify(users));
-            
-            showToast('Registered successfully! Please login.');
-            switchModal('register', 'login');
-        }
-        
-        function logout() {
-            currentUser = null;
-            localStorage.removeItem('currentUser');
-            showToast('Logged out');
-            updateUI();
-            showHome();
-        }
-
-        // Paste functions
-        function handleUpload() {
-            if (!currentUser) return;
-            
-            const title = document.getElementById('pasteTitle').value;
-            const content = document.getElementById('pasteContent').value;
-            const syntax = document.getElementById('pasteSyntax').value;
-            const visibility = document.getElementById('pasteVisibility').value;
-            const expiration = document.getElementById('pasteExpiration').value;
-            const errorDiv = document.getElementById('uploadError');
-            
-            if (!title || !content) {
-                errorDiv.textContent = 'Please fill in all fields';
-                return;
-            }
-            
-            const newPaste = {
-                id: pastes.length + 1,
-                title: title,
-                content: content,
-                author: currentUser.username,
-                authorId: currentUser.id,
-                views: 0,
-                date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                syntax: syntax,
-                visibility: visibility,
-                expiration: expiration,
-                pinned: false,
-                createdAt: Date.now()
-            };
-            
-            pastes.unshift(newPaste);
-            localStorage.setItem('pastes', JSON.stringify(pastes));
-            
-            showToast('Paste created successfully!');
-            hideModal('upload');
-            document.getElementById('pasteTitle').value = '';
-            document.getElementById('pasteContent').value = '';
-            showHome();
-        }
-        
-        function handleFileSelect() {
-            const file = document.getElementById('fileInput').files[0];
-            if (file) {
-                document.getElementById('fileName').innerHTML = `Selected: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
-                
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('pasteContent').value = e.target.result;
-                    document.getElementById('pasteTitle').value = file.name.replace(/\.[^/.]+$/, '');
-                    switchTab('upload', 'text');
-                };
-                reader.readAsText(file);
-            }
-        }
-
-        function viewPaste(id) {
-            const paste = pastes.find(p => p.id === id);
-            if (paste) {
-                paste.views++;
-                localStorage.setItem('pastes', JSON.stringify(pastes));
-                
-                document.getElementById('viewPasteTitle').textContent = paste.title;
-                document.getElementById('pasteContent').textContent = paste.content;
-                
-                // Syntax highlighting class
-                if (paste.syntax !== 'text') {
-                    document.getElementById('pasteContent').className = `language-${paste.syntax}`;
-                }
-                
-                // Paste info
-                const pasteComments = comments.filter(c => c.pasteId === id);
-                document.getElementById('pasteInfo').innerHTML = `
-                    <div class="info-row">
-                        <span class="info-label">Author:</span>
-                        <span class="info-value"><a href="#" class="profile-link" onclick="showUserProfile('${paste.author}')">${paste.author}</a></span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Created:</span>
-                        <span class="info-value">${paste.date}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Views:</span>
-                        <span class="info-value">${paste.views}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Comments:</span>
-                        <span class="info-value">${pasteComments.length}</span>
-                    </div>
-                `;
-                
-                // Reactions
-                const pasteReactions = reactions[id] || { likes: 0, dislikes: 0, userReaction: null };
-                document.getElementById('pasteReactions').innerHTML = `
-                    <button class="reaction-button ${pasteReactions.userReaction === 'like' ? 'active' : ''}" onclick="addReaction(${id}, 'like')">
-                        <i class="fas fa-thumbs-up"></i> ${pasteReactions.likes}
-                    </button>
-                    <button class="reaction-button ${pasteReactions.userReaction === 'dislike' ? 'active' : ''}" onclick="addReaction(${id}, 'dislike')">
-                        <i class="fas fa-thumbs-down"></i> ${pasteReactions.dislikes}
-                    </button>
-                `;
-                
-                // Comments
-                document.getElementById('pasteComments').innerHTML = pasteComments.map(comment => `
-                    <div class="comment">
-                        <div class="comment-meta">
-                            <span><a href="#" class="profile-link" onclick="showUserProfile('${comment.author}')">${comment.author}</a> • ${comment.date}</span>
-                        </div>
-                        <div class="comment-content">${comment.content}</div>
-                    </div>
-                `).join('');
-                
-                document.getElementById('commentForm').style.display = currentUser ? 'block' : 'none';
-                document.getElementById('commentInput').value = '';
-                
-                showModal('view-paste');
-            }
-        }
-
-        function addComment() {
-            if (!currentUser) {
-                showToast('Please login to comment');
-                hideModal('view-paste');
-                showModal('login');
-                return;
-            }
-            
-            const pasteId = parseInt(document.getElementById('viewPasteTitle').textContent.split(' ')[0]) || 1;
-            const content = document.getElementById('commentInput').value;
-            
-            if (!content) return;
-            
-            const newComment = {
-                id: comments.length + 1,
-                pasteId: pasteId,
-                author: currentUser.username,
-                authorId: currentUser.id,
-                content: content,
-                date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-            };
-            
-            comments.push(newComment);
-            localStorage.setItem('comments', JSON.stringify(comments));
-            
-            showToast('Comment added!');
-            viewPaste(pasteId);
-        }
-
-        function addReaction(pasteId, type) {
-            if (!currentUser) {
-                showToast('Please login to react');
-                hideModal('view-paste');
-                showModal('login');
-                return;
-            }
-            
-            if (!reactions[pasteId]) {
-                reactions[pasteId] = { likes: 0, dislikes: 0, userReaction: null };
-            }
-            
-            const pasteReaction = reactions[pasteId];
-            
-            if (pasteReaction.userReaction === type) {
-                // Remove reaction
-                pasteReaction[type + 's']--;
-                pasteReaction.userReaction = null;
-            } else {
-                // Remove previous reaction if exists
-                if (pasteReaction.userReaction) {
-                    pasteReaction[pasteReaction.userReaction + 's']--;
-                }
-                // Add new reaction
-                pasteReaction[type + 's']++;
-                pasteReaction.userReaction = type;
-            }
-            
-            localStorage.setItem('reactions', JSON.stringify(reactions));
-            viewPaste(pasteId);
-        }
-
-        // Profile functions
-        function saveProfile() {
-            if (!currentUser) return;
-            
-            currentUser.displayName = document.getElementById('displayName').value || currentUser.username;
-            currentUser.bio = document.getElementById('bio').value;
-            currentUser.website = document.getElementById('website').value;
-            currentUser.location = document.getElementById('location').value;
-            
-            const index = users.findIndex(u => u.id === currentUser.id);
-            users[index] = { ...users[index], ...currentUser };
-            
-            localStorage.setItem('users', JSON.stringify(users));
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            
-            showToast('Profile updated!');
-            hideModal('edit-profile');
-            updateUI();
-        }
-        
-        function handleAvatarSelect() {
-            const file = document.getElementById('avatarInput').files[0];
-            if (file && currentUser) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    currentUser.avatar = e.target.result;
-                    
-                    const index = users.findIndex(u => u.id === currentUser.id);
-                    users[index].avatar = e.target.result;
-                    
-                    localStorage.setItem('users', JSON.stringify(users));
-                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                    
-                    showToast('Avatar updated!');
-                    hideModal('avatar');
-                    updateUI();
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
-        function toggleFollow(userId) {
-            if (!currentUser) {
-                showToast('Please login to follow users');
-                showModal('login');
-                return;
-            }
-            
-            const userIndex = users.findIndex(u => u.id === userId);
-            const currentUserIndex = users.findIndex(u => u.id === currentUser.id);
-            
-            if (!users[currentUserIndex].following) {
-                users[currentUserIndex].following = [];
-            }
-            
-            if (!users[userIndex].followers) {
-                users[userIndex].followers = [];
-            }
-            
-            const isFollowing = users[currentUserIndex].following.includes(userId);
-            
-            if (isFollowing) {
-                users[currentUserIndex].following = users[currentUserIndex].following.filter(id => id !== userId);
-                users[userIndex].followers = users[userIndex].followers.filter(id => id !== currentUser.id);
-            } else {
-                users[currentUserIndex].following.push(userId);
-                users[userIndex].followers.push(currentUser.id);
-            }
-            
-            currentUser.following = users[currentUserIndex].following;
-            
-            localStorage.setItem('users', JSON.stringify(users));
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            
-            showToast(isFollowing ? 'Unfollowed' : 'Following');
-            updateUI();
-            showUserProfile(users[userIndex].username);
-        }
-
-        // Search function
-        function searchPastes() {
-            const query = document.getElementById('searchInput').value.toLowerCase();
-            if (!query) {
-                showHome();
-                return;
-            }
-            
-            const filtered = pastes.filter(p => 
-                p.visibility === 'public' && 
-                (p.title.toLowerCase().includes(query) || 
-                 p.content.toLowerCase().includes(query) ||
-                 p.author.toLowerCase().includes(query))
-            );
-            
-            document.getElementById('mainContent').innerHTML = renderPasteList(filtered);
-        }
-
-        // URL handling
-        function updateURL(path) {
-            history.pushState({}, '', path);
-        }
-
         // Toast function
         function showToast(message) {
             const toast = document.getElementById('toast');
@@ -1405,49 +1671,37 @@
             }, 3000);
         }
 
-        // Update UI function
+        // Update UI based on auth state
         function updateUI() {
-            renderSidebar();
-            
-            // Update navigation
             const navLinks = document.getElementById('navLinks');
             if (currentUser) {
                 navLinks.innerHTML = `
-                    <a href="#" onclick="showHome()">Home</a>
-                    <a href="#" onclick="showModal('upload')">Add Paste</a>
-                    <a href="#" onclick="showUsers()">Users</a>
-                    <a href="#" onclick="showUserProfile('${currentUser.username}')">Profile</a>
-                    <a href="#" onclick="logout()">Logout</a>
+                    <a onclick="loadHome()">Home</a>
+                    <a onclick="showModal('upload')">Add Paste</a>
+                    <a onclick="loadUsers()">Users</a>
+                    <a onclick="viewUser('${currentUser.username}')">Profile</a>
+                    <a onclick="handleLogout()">Logout</a>
                 `;
             } else {
                 navLinks.innerHTML = `
-                    <a href="#" onclick="showHome()">Home</a>
-                    <a href="#" onclick="showModal('upload')">Add Paste</a>
-                    <a href="#" onclick="showUsers()">Users</a>
-                    <a href="#" onclick="showModal('login')">Login</a>
+                    <a onclick="loadHome()">Home</a>
+                    <a onclick="showModal('upload')">Add Paste</a>
+                    <a onclick="loadUsers()">Users</a>
+                    <a onclick="showModal('login')">Login</a>
                 `;
             }
+            loadSidebar();
         }
 
         // Initialize
-        updateUI();
-        showHome();
-
-        // Handle browser back/forward
-        window.onpopstate = function() {
-            if (location.pathname === '/users') {
-                showUsers();
-            } else {
-                showHome();
-            }
-        };
+        init();
 
         // Close modals when clicking outside
         window.onclick = function(event) {
             if (event.target.classList.contains('modal')) {
                 event.target.classList.remove('active');
             }
-        }
+        };
     </script>
 </body>
 </html>
